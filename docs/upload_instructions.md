@@ -1,39 +1,69 @@
-# Upload Instructions for GitHub
+# GitHub upload instructions
 
-Follow these steps to upload the simplified RNA‑seq workflow to GitHub.  These instructions assume that you have a GitHub account and that Git is installed on your local machine.  Replace `<your‑username>` with your GitHub username and modify paths as needed.
+These steps prepare and upload `rnaseq2tracks_v2` as a clean GitHub repository.
 
-1. **Create a new repository on GitHub**.  Log in to GitHub, click the **New** button to create a repository named `RNAfastq2tracks` or similar.  Do not initialise it with a README, licence or `.gitignore`—we will add these locally.
+## 1. Unpack the archive
 
-2. **Clone the empty repository** to your computer:
+```bash
+unzip rnaseq2tracks_v2.zip
+cd rnaseq2tracks_v2
+```
 
-   ```bash
-   git clone https://github.com/<your‑username>/RNAfastq2tracks.git
-   cd RNAfastq2tracks
-   ```
+## 2. Check the files
 
-3. **Copy the workflow files** into the cloned directory.  Assuming the contents of this repository reside in `/path/to/rna_seq_pipeline`:
+```bash
+ls
+```
 
-   ```bash
-   cp -r /path/to/rna_seq_pipeline/* .
-   ```
+You should see:
 
-4. **Verify the file structure**.  You should see `README.md`, `RNAfastq2tracks.sh`, `config/`, `scripts/` and `docs/` in the current directory.  Run `tree` or `ls` to inspect.
+```text
+README.md
+RNAfastq2tracks.sh
+config/
+scripts/
+docs/
+examples/
+tests/
+.gitignore
+LICENSE
+CITATION.cff
+```
 
-5. **Edit `config/config.sh`** to set the correct paths to your STAR genome indexes, GTF files, chromosome sizes and tool executables.  Commiting incorrect paths may confuse other users; you may prefer to leave the default placeholders and update locally when running the workflow.
+## 3. Make scripts executable
 
-6. **Initialise Git and make the first commit** (if the repository is empty).  Add all files and commit:
+```bash
+chmod +x RNAfastq2tracks.sh scripts/*.sh scripts/*.R
+```
 
-   ```bash
-   git add .
-   git commit -m "Initial commit: simplified RNA‑seq workflow"
-   ```
+## 4. Create a new GitHub repository
 
-7. **Push the commit** to GitHub:
+Create an empty repository on GitHub, for example:
 
-   ```bash
-   git push origin main
-   ```
+```text
+rnaseq2tracks_v2
+```
 
-8. **Verify on GitHub**.  Navigate to your repository page to confirm that all files have been uploaded.  You can now continue to edit the workflow, track issues and collaborate with others.
+Do not add a README, license, or `.gitignore` through the GitHub web interface because those files are already included here.
 
-These steps create a clean history and ensure that the repository on GitHub mirrors the contents of this project.
+## 5. Initialize Git locally
+
+```bash
+git init
+git add .
+git commit -m "Initial commit: RNAseq2tracks v2"
+```
+
+## 6. Connect and push
+
+Replace `<your-user>` with your GitHub username or organization:
+
+```bash
+git branch -M main
+git remote add origin https://github.com/<your-user>/rnaseq2tracks_v2.git
+git push -u origin main
+```
+
+## 7. Verify on GitHub
+
+Open the repository page and check that the README displays the workflow schematic on the front page. Also verify that generated runtime outputs such as BAM, FASTQ, bedGraph, and BigWig files are not committed.

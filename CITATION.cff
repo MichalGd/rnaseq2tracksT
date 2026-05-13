@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this workflow, please cite the repository and the underlying tools used by the workflow."
+title: "RNAseq2tracks v2"
+version: "2.0.0"
+date-released: "2026-05-13"
+authors:
+  - family-names: "Gdula"
+    given-names: "Michal"
+repository-code: "https://github.com/MichalGd/rnaseq2tracks"
+license: "MIT"

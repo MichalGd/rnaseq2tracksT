@@ -1,0 +1,30 @@
+# Runtime outputs
+results/
+output/
+outputs/
+logs/
+fastqc_raw/
+fastqc_trimmed/
+trimmed/
+star/
+counts/
+coverage/
+tracks/
+reports/
+
+# Large sequencing and alignment files
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.bam
+*.bai
+*.sam
+*.bedGraph
+*.bw
+*.bigWig
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store

@@ -1,0 +1,19 @@
+flowchart TD
+    A[Local FASTQ folder] --> B[FastQC raw]
+    B --> C[Trim Galore]
+    C --> D[FastQC trimmed]
+    D --> E[STAR alignment]
+    E --> F[STAR GeneCounts]
+    F --> G[Raw counts]
+    G --> H[DESeq2 size factors]
+    H --> I[Normalized counts]
+    E --> J[bedtools genomecov]
+    J --> K[Filter conventional chromosomes]
+    K --> L[Raw bedGraph]
+    K --> M[Normalized bedGraph]
+    M --> N[Sort bedGraph]
+    N --> O[bedGraphToBigWig]
+    O --> P[UCSC-compatible BigWig]
+    B --> Q[MultiQC]
+    D --> Q
+    E --> Q

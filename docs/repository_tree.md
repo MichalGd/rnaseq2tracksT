@@ -1,9 +1,7 @@
-# Repository Tree
+# Repository tree
 
-The following tree illustrates the files and directories included in the simplified RNA‑seq workflow.  It is intended as a quick reference when browsing or uploading the project to GitHub.  Generated output directories (e.g. `fastqc_raw`, `star`, `counts`) are not included in the repository and will be created at runtime.
-
-```
-rna_seq_pipeline/
+```text
+rnaseq2tracks_v2/
 ├── README.md
 ├── RNAfastq2tracks.sh
 ├── config/
@@ -17,13 +15,20 @@ rna_seq_pipeline/
 │   ├── run_coverage.sh
 │   ├── run_multiqc.sh
 │   └── create_ucsc_tracks.sh
-└── docs/
-    ├── specification.md
-    ├── reuse_map.md
-    ├── repository_tree.md
-    ├── upload_instructions.md
-    ├── checklist.md
-    └── report.pdf
+├── docs/
+│   ├── specification.md
+│   ├── reuse_map.md
+│   ├── repository_tree.md
+│   ├── upload_instructions.md
+│   ├── checklist.md
+│   ├── report.pdf
+│   └── schematics/
+│       └── workflow_schematic.mmd
+├── examples/
+│   └── samplesheet.example.csv
+├── tests/
+│   └── smoke_test.md
+├── .gitignore
+├── LICENSE
+└── CITATION.cff
 ```
-
-Each script in the `scripts/` directory is designed to perform a single task.  The master script `RNAfastq2tracks.sh` calls these helpers in sequence.  Documentation resides in `docs/` and should be read before running the workflow.
