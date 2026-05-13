@@ -1,0 +1,233 @@
+<h1 id="specification-for-simplified-rnaseq-workflow">Specification for
+Simplified RNA‑seq Workflow</h1>
+<h2 id="a.-what-is-reusable">A. What is reusable</h2>
+<ul>
+<li>The overall structure of the original <code>fastq2tracks</code>
+project (master script invoking modular helper scripts) is reused.</li>
+<li>The concept of using <strong>STAR</strong> for alignment and
+generating gene counts via <code>--quantMode GeneCounts</code> is
+retained.</li>
+<li>The idea of producing strand‑specific bedGraph/BigWig files and
+creating UCSC track lines is adapted.</li>
+<li>The MultiQC reporting pipeline is reused conceptually to summarise
+QC reports.</li>
+</ul>
+<h2 id="b.-what-is-not-reusable-as-is">B. What is not reusable as
+is</h2>
+<ul>
+<li>Dataset‑specific scripts that embed absolute file paths,
+project‑specific directories or HPC scheduler directives are removed or
+parameterised.</li>
+<li>Hard‑coded references to previous FASTQ file naming conventions are
+generalised.</li>
+<li>Scripts that performed ChIP‑seq specific processing (e.g. replicate
+merging, spike‑in normalisation) are dropped.</li>
+</ul>
+<h2 id="c.-proposed-technical-specification">C. Proposed technical
+specification</h2>
+<h3 id="scope-version-1">Scope (Version 1)</h3>
+<ul>
+<li><strong>Input formats</strong>: The workflow accepts single‑end or
+paired‑end FASTQ reads. Paired reads must be named with a
+<code>_1</code> and <code>_2</code> suffix before
+<code>.fq.gz</code>.</li>
+<li><strong>Library strandedness</strong>: Both stranded and unstranded
+libraries are supported via an optional sample sheet. The sample sheet
+has two columns (<code>sample, strandedness</code>) where
+<code>strandedness</code> can be <code>forward</code>,
+<code>reverse</code> or <code>unstranded</code> and informs downstream
+analyses.</li>
+<li><strong>Alignment</strong>: Reads are aligned with
+<strong>STAR</strong> using a user‑provided genome index and annotation
+(GTF). Alignments are sorted by coordinate and gene counts are written
+via <code>--quantMode GeneCounts</code>.</li>
+<li><strong>Count matrix</strong>: Gene counts are extracted from the
+<code>ReadsPerGene.out.tab</code> files produced by STAR. By default,
+the unstranded counts (column 2) are used.</li>
+<li><strong>Normalisation</strong>: Size factors are estimated using
+<strong>DESeq2</strong>. Normalised counts are computed using the
+size‑factor × mean‑RPM anchor (SF_rpm) method. This normalisation is
+intended for visualisation; raw counts should be used for differential
+expression.</li>
+<li><strong>Coverage tracks</strong>: Raw bedGraph, normalised bedGraph
+and normalised BigWig files are generated for each sample. Normalised
+coverage is obtained by dividing coverage by the DESeq2 size factor and
+scaling by the mean RPM across all genes.</li>
+<li><strong>Quality control</strong>: <strong>FastQC</strong> is run on
+both raw and trimmed reads. Adapter trimming is performed with
+<strong>Trim Galore</strong>. <strong>MultiQC</strong> summarises QC and
+mapping statistics.</li>
+<li><strong>Master script</strong>: A single bash script
+(<code>RNAfastq2tracks.sh</code>) orchestrates all steps. Helper scripts
+encapsulate discrete tasks (fastqc, trimming, alignment, counts,
+normalisation, coverage, reports, track creation).</li>
+<li><strong>Configuration</strong>: All machine‑specific paths (genome
+indexes, annotations, chromosome sizes, tool binaries) are defined in
+<code>config/config.sh</code> and must be edited by the user before
+running the pipeline.</li>
+<li><strong>Outputs</strong>: The workflow stops at generating raw
+counts and SF_rpm normalised counts; it does not perform differential
+expression itself. The normalised counts and BigWig files can be used as
+inputs to DESeq2 or visualised in genome browsers.</li>
+</ul>
+<h3 id="singleend-vs-pairedend-support">Single‑end vs Paired‑end
+Support</h3>
+<p>The master script accepts an optional argument
+<code>paired|single</code>. If <code>paired</code> (default), the
+trimming and alignment scripts expect paired FASTQ files. If
+<code>single</code>, each FASTQ file is processed independently.</p>
+<h3 id="stranded-vs-unstranded-support">Stranded vs Unstranded
+Support</h3>
+<p>Strandedness is specified per sample in an optional CSV sample sheet.
+While STAR will always compute counts for all three orientations,
+downstream differential expression analyses can use the appropriate
+column based on the sample’s strandedness. This workflow currently uses
+unstranded counts (column 2) for simplicity.</p>
+<h3 id="count-matrix-generation">Count Matrix Generation</h3>
+<p>STAR writes a <code>ReadsPerGene.out.tab</code> file for each sample.
+This tab‑delimited file contains four columns: gene identifier,
+unstranded counts, forward‑strand counts and reverse‑strand counts. The
+helper script <code>run_gene_counts.sh</code> extracts the gene names
+and the column specified by <code>GENE_COUNTS_COLUMN</code> in the
+configuration file (default 2) and merges them into a single matrix. The
+result (<code>raw_counts_matrix.tsv</code>) has genes as rows and
+samples as columns.</p>
+<h3 id="coverage-normalisation-method">Coverage Normalisation
+Method</h3>
+<p>Coverage is computed using <code>bedtools genomecov</code> on the
+sorted BAM files. The raw coverage (read depth per base) is divided by
+the DESeq2 size factor for each sample and scaled by the mean reads per
+million (RPM) across all genes, producing the SF_rpm normalised
+coverage. BedGraph files are sorted and converted to BigWig format with
+the <code>bedGraphToBigWig</code> utility and chromosome size files.</p>
+<h3 id="required-config-variables">Required Config Variables</h3>
+<p>The file <code>config/config.sh</code> defines the following
+variables:</p>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>STAR_INDEX_HUMAN</code></td>
+<td>Path to the STAR genome index for human (hg38 or other build)</td>
+</tr>
+<tr class="even">
+<td><code>STAR_INDEX_MOUSE</code></td>
+<td>Path to the STAR genome index for mouse (mm10/mm39)</td>
+</tr>
+<tr class="odd">
+<td><code>GTF_HUMAN</code></td>
+<td>Path to the GTF annotation file for human</td>
+</tr>
+<tr class="even">
+<td><code>GTF_MOUSE</code></td>
+<td>Path to the GTF annotation file for mouse</td>
+</tr>
+<tr class="odd">
+<td><code>CHROM_SIZES_HUMAN</code></td>
+<td>Chromosome sizes file for human (used by bedGraphToBigWig)</td>
+</tr>
+<tr class="even">
+<td><code>CHROM_SIZES_MOUSE</code></td>
+<td>Chromosome sizes file for mouse</td>
+</tr>
+<tr class="odd">
+<td><code>FASTQC_BIN</code></td>
+<td>Executable for FastQC</td>
+</tr>
+<tr class="even">
+<td><code>TRIMGALORE_BIN</code></td>
+<td>Executable for Trim Galore</td>
+</tr>
+<tr class="odd">
+<td><code>STAR_BIN</code></td>
+<td>Executable for STAR</td>
+</tr>
+<tr class="even">
+<td><code>BEDTOOLS_BIN</code></td>
+<td>Executable for bedtools</td>
+</tr>
+<tr class="odd">
+<td><code>BEDGRAPH_TO_BIGWIG_BIN</code></td>
+<td>Executable for bedGraphToBigWig</td>
+</tr>
+<tr class="even">
+<td><code>MULTIQC_BIN</code></td>
+<td>Executable for MultiQC</td>
+</tr>
+<tr class="odd">
+<td><code>R_BIN</code></td>
+<td>Executable for Rscript</td>
+</tr>
+<tr class="even">
+<td><code>GENE_COUNTS_COLUMN</code></td>
+<td>Column number in STAR counts file to use (default 2)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="d.-proposed-repository-tree">D. Proposed Repository Tree</h2>
+<p>The simplified workflow repository is organised as follows:</p>
+<pre><code>rna_seq_pipeline/
+├── README.md                 # Overview, usage and requirements
+├── RNAfastq2tracks.sh        # Master script
+├── config/
+│   └── config.sh             # User‑editable configuration
+├── scripts/
+│   ├── run_fastqc.sh         # Run FastQC on FASTQ files
+│   ├── run_trimming.sh       # Trim adapters with Trim Galore
+│   ├── run_star.sh           # Align reads with STAR
+│   ├── run_gene_counts.sh    # Merge STAR gene counts
+│   ├── run_normalization.R   # Estimate size factors and normalise counts
+│   ├── run_coverage.sh       # Compute and normalise coverage; create BigWigs
+│   ├── run_multiqc.sh        # Run MultiQC across the project
+│   └── create_ucsc_tracks.sh # Generate UCSC track hub entries
+└── docs/
+    ├── specification.md      # This specification
+    ├── reuse_map.md          # Mapping of reused vs replaced scripts
+    ├── repository_tree.md    # Tree of the repository
+    ├── upload_instructions.md# How to upload to GitHub
+    ├── checklist.md          # Final checklist before run
+    └── report.pdf            # PDF rendering of the specification</code></pre>
+<h2 id="e.-assumptions-and-risks">E. Assumptions and Risks</h2>
+<ul>
+<li><strong>Genome indexes</strong> – The user must supply correct STAR
+genome indexes and annotation files for the chosen species. The pipeline
+does not download or build indexes automatically.</li>
+<li><strong>Software availability</strong> – The workflow assumes that
+STAR, FastQC, Trim Galore, bedtools, bedGraphToBigWig, MultiQC and R
+with DESeq2/apeglm are installed and accessible via the configured
+paths.</li>
+<li><strong>Input naming</strong> – Paired‑end reads must follow the
+<code>_1.fq.gz</code>/<code>_2.fq.gz</code> naming convention.
+Trim Galore output suffixes (<code>_val_1.fq.gz</code>) are handled
+automatically.</li>
+<li><strong>Resources</strong> – Running STAR and DESeq2 can be
+resource‑intensive. Adjust <code>max_jobs</code> and ensure adequate
+memory and disk space for your datasets.</li>
+<li><strong>Strandedness</strong> – The workflow does not automatically
+detect library strandedness. Incorrect specification may affect
+downstream differential expression analyses.</li>
+<li><strong>Normalisation</strong> – The SF_rpm normalisation is
+intended for visualisation. For statistical testing, use raw counts and
+perform differential expression analysis with DESeq2 or another
+tool.</li>
+<li><strong>Testing</strong> – Prior to full use, test the pipeline on a
+small dataset to verify that all dependencies are installed and
+configured correctly.</li>
+</ul>
+<h2 id="f.-final-recommendation">F. Final Recommendation</h2>
+<p>This workflow strikes a balance between reuse of proven components
+and simplification for new users. By modularising each step and exposing
+configuration variables, it provides flexibility while remaining
+accessible. For production use, further validation on representative
+datasets is recommended. Users should carefully edit the configuration
+file to point to their own genome indexes and adjust resource usage
+according to their computing environment.</p>
